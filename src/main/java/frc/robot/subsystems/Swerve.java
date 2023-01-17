@@ -108,16 +108,16 @@ public class Swerve extends SubsystemBase {
         return (Constants.Swerve.invertGyro) ? Rotation2d.fromDegrees(360 - gyro.getYaw()) : Rotation2d.fromDegrees(gyro.getYaw());
     }
 
-    public void resetModulesToAbsolute(){
+    public void reset(){
         for(SwerveModule mod : mSwerveMods){
-            mod.resetToAbsolute();
+            mod.reset();
         }
     }
 
     @Override
     public void periodic(){
         if (DriverStation.isDisabled()){
-            resetModulesToAbsolute();
+            reset();
         }
 
         swerveOdometry.update(getYaw(), getModulePositions());  

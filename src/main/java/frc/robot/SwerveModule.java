@@ -275,13 +275,6 @@ public class SwerveModule {
 //   }
 
    
-
-   
-    public void resetToAbsolute(){
-        double absolutePosition = Conversions.degreesToFalcon(getAbsoluteAngle().getDegrees() - angleOffset.getDegrees(), Constants.Swerve.angleGearRatio);
-        m_steerMotor.getEncoder().setPosition(absolutePosition);
-    }
-
     private void configAngleEncoder(){        
         CANcoder.configFactoryDefault();
         CANcoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);

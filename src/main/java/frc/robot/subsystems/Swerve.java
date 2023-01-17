@@ -31,7 +31,7 @@ public class Swerve extends SubsystemBase {
     public Swerve() {
         // gyro = new Pigeon2(Constants.Swerve.pigeonID);  /*FIXME [DONE] Change to NavX, figure out where gryo, piegion 2, constant.swerve leads to*/
         gyro = new AHRS(SPI.Port.kMXP);
-        gyro.calibrate();                               /*FIXME Make sure this gets called in robot init */
+        gyro.calibrate();                               
         // gyro.configFactoryDefault();
         zeroGyro();
 
@@ -121,6 +121,7 @@ public class Swerve extends SubsystemBase {
         }
 
         swerveOdometry.update(getYaw(), getModulePositions());  
+    
 
         for(SwerveModule mod : mSwerveMods){
             SmartDashboard.putNumber("Mod " + mod.moduleNumber + " Cancoder", mod.getCanCoder().getDegrees());

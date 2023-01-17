@@ -37,20 +37,20 @@ public class SwerveModule {
 
     // private TalonFX mAngleMotor; /*FIXME [DONE] Replaced with NEO motors */
     // private TalonFX mDriveMotor; /*FIXME [DONE] Replaced with NEO motors */
-    private CANSparkMax m_drivingSparkMax;
-    private CANSparkMax m_turningSparkMax;
+    private CANSparkMax m_driveMotor;
+    private CANSparkMax m_steerMotor;
     
-    private final CANCoder angleEncoder;
+    private final CANCoder CANcoder;
     private final RelativeEncoder m_drivingEncoder;
-    private final RelativeEncoder m_turningEncoder;
+    private final RelativeEncoder m_steerIntegratedEncoder;
 
     private final SparkMaxPIDController m_drivingPIDController;
-    private final SparkMaxPIDController m_turningPIDController;
+    private final SparkMaxPIDController m_steeringPIDController;
     private final PIDController m_CancoderTurningController;
 
     private SwerveModulePosition m_modulePosition;
 
-    private final Rotation2d chassisOffsetAngular = Rotation2d.fromRadians(0.0);
+    private final Rotation2d chassisOffsetAngular = Rotation2d.fromDegrees(0.0);
     // private double m_chassisAngularOffset = 0; /*FIXME [DONE] Do we need this?????*/
 
     private SwerveModuleState m_desiredState = new SwerveModuleState(0.0, new Rotation2d());
@@ -62,31 +62,31 @@ public class SwerveModule {
         this.angleOffset = moduleConstants.angleOffset;
         
         /* Angle Encoder Config */
-        angleEncoder = new CANCoder(moduleConstants.cancoderID);
+        CANcoder = new CANCoder(moduleConstants.cancoderID);
         configAngleEncoder();
 
         /* Angle Motor Config */ 
         // mAngleMotor = new TalonFX(moduleConstants.angleMotorID);
-        m_turningSparkMax = new CANSparkMax(moduleConstants.angleMotorID, MotorType.kBrushless);
+        m_steerMotor = new CANSparkMax(moduleConstants.angleMotorID, MotorType.kBrushless);
         configAngleMotor();
 
         /* Drive Motor Config */
         // mDriveMotor = new TalonFX(moduleConstants.driveMotorID);
-        m_drivingSparkMax = new CANSparkMax(moduleConstants.driveMotorID, MotorType.kBrushless);
+        m_driveMotor = new CANSparkMax(moduleConstants.driveMotorID, MotorType.kBrushless);
         configDriveMotor();
 
         // Factory reset, so we get the SPARKS MAX to a known state before configuring
         // them. This is useful in case a SPARK MAX is swapped out.
-        m_drivingSparkMax.restoreFactoryDefaults();
-        m_turningSparkMax.restoreFactoryDefaults();
+        m_driveMotor.restoreFactoryDefaults();
+        m_steerMotor.restoreFactoryDefaults();
 
         // Setup encoders and PID controllers for the driving and turning SPARKS MAX.
-        m_drivingEncoder = m_drivingSparkMax.getEncoder();
-        m_turningEncoder = m_turningSparkMax.getEncoder();
-        m_drivingPIDController = m_drivingSparkMax.getPIDController();
-        m_turningPIDController = m_turningSparkMax.getPIDController();
+        m_drivingEncoder = m_driveMotor.getEncoder();
+        m_steerIntegratedEncoder = m_steerMotor.getEncoder();
+        m_drivingPIDController = m_driveMotor.getPIDController();
+        m_steeringPIDController = m_steerMotor.getPIDController();
         m_drivingPIDController.setFeedbackDevice(m_drivingEncoder);
-        m_turningPIDController.setFeedbackDevice(m_turningEncoder);
+        m_steeringPIDController.setFeedbackDevice(m_steerIntegratedEncoder);
 
         // Apply position and velocity conversion factors for the driving encoder. The
         // native units for position and velocity are rotations and RPM, respectively,
@@ -97,13 +97,13 @@ public class SwerveModule {
         // Apply position and velocity conversion factors for the turning encoder. We
         // want these in radians and radians per second to use with WPILib's swerve
         // APIs.
-        m_turningEncoder.setPositionConversionFactor(Constants.Swerve.kTurningEncoderPositionFactor);
-        m_turningEncoder.setVelocityConversionFactor(Constants.Swerve.kTurningEncoderVelocityFactor);
+        m_steerIntegratedEncoder.setPositionConversionFactor(Constants.Swerve.kTurningEncoderPositionFactor);
+        m_steerIntegratedEncoder.setVelocityConversionFactor(Constants.Swerve.kTurningEncoderVelocityFactor);
 
         /*FIXME SHOULD WE INCLUDE THIS?? */
-        m_turningPIDController.setPositionPIDWrappingEnabled(true);
-        m_turningPIDController.setPositionPIDWrappingMinInput(Constants.Swerve.kTurningEncoderPositionPIDMinInput);
-        m_turningPIDController.setPositionPIDWrappingMaxInput(Constants.Swerve.kTurningEncoderPositionPIDMaxInput);
+        m_steeringPIDController.setPositionPIDWrappingEnabled(true);
+        m_steeringPIDController.setPositionPIDWrappingMinInput(Constants.Swerve.kTurningEncoderPositionPIDMinInput);
+        m_steeringPIDController.setPositionPIDWrappingMaxInput(Constants.Swerve.kTurningEncoderPositionPIDMaxInput);
         
         // Set the PID gains for the driving motor. Note these are example gains, and you
         // may need to tune them for your own robot!
@@ -116,24 +116,24 @@ public class SwerveModule {
 
         // Set the PID gains for the turning motor. Note these are example gains, and you
         // may need to tune them for your own robot!
-        m_turningPIDController.setP(Constants.Swerve.angleKP);
-        m_turningPIDController.setI(Constants.Swerve.angleKI);
-        m_turningPIDController.setD(Constants.Swerve.angleKD);
-        m_turningPIDController.setFF(Constants.Swerve.angleKF);
-        m_turningPIDController.setOutputRange(Constants.Swerve.kTurningMinOutput,
+        m_steeringPIDController.setP(Constants.Swerve.angleKP);
+        m_steeringPIDController.setI(Constants.Swerve.angleKI);
+        m_steeringPIDController.setD(Constants.Swerve.angleKD);
+        m_steeringPIDController.setFF(Constants.Swerve.angleKF);
+        m_steeringPIDController.setOutputRange(Constants.Swerve.kTurningMinOutput,
             Constants.Swerve.kTurningMaxOutput);
 
-        m_drivingSparkMax.setIdleMode(Constants.Swerve.drivingIdleMode);
-        m_turningSparkMax.setIdleMode(Constants.Swerve.steeringIdleMode);
-        m_drivingSparkMax.setSmartCurrentLimit(Constants.Swerve.kDrivingMotorCurrentLimit);
-        m_turningSparkMax.setSmartCurrentLimit(Constants.Swerve.kTurningMotorCurrentLimit);
+        m_driveMotor.setIdleMode(Constants.Swerve.drivingIdleMode);
+        m_steerMotor.setIdleMode(Constants.Swerve.steeringIdleMode);
+        m_driveMotor.setSmartCurrentLimit(Constants.Swerve.kDrivingMotorCurrentLimit);
+        m_steerMotor.setSmartCurrentLimit(Constants.Swerve.kTurningMotorCurrentLimit);
 
 
         // chassisOffsetAngular = (moduleConstants.angleOffset);
-        m_turningEncoder.setPosition(angleEncoder.getAbsolutePosition());
+        m_steerIntegratedEncoder.setPosition(CANcoder.getAbsolutePosition());
 
         // m_chassisAngularOffset = angleOffset; /*FIXME [DONE] DO WE NEED THIS? */
-        m_desiredState.angle = new Rotation2d(m_turningEncoder.getPosition());
+        // m_desiredState.angle = new Rotation2d(m_turningEncoder.getPosition());
         m_drivingEncoder.setPosition(0);
 
         m_CancoderTurningController = new PIDController(
@@ -143,22 +143,22 @@ public class SwerveModule {
     );
 
         // lastAngle = getState().angle;
-
+        m_CancoderTurningController.enableContinuousInput(0, 360);
         m_modulePosition = new SwerveModulePosition();
 
          // Save the SPARK MAX configurations. If a SPARK MAX browns out during
         // operation, it will maintain the above configurations.
-        m_drivingSparkMax.burnFlash();
-        m_turningSparkMax.burnFlash();
+        m_driveMotor.burnFlash();
+        m_steerMotor.burnFlash();
     }
 
     public void reset(){
-        m_turningEncoder.setPosition(angleEncoder.getAbsolutePosition());
+        m_steerIntegratedEncoder.setPosition(CANcoder.getAbsolutePosition());
       }
     
       public void stop(){
-        m_drivingSparkMax.set(0);
-        m_turningSparkMax.set(0);
+        m_driveMotor.set(0);
+        m_steerMotor.set(0);
       }
     
       public void updatePosition(){
@@ -172,7 +172,7 @@ public class SwerveModule {
       }
     
       public Rotation2d getSteerAngle(){
-        double angle = m_turningEncoder.getPosition() - this.angleOffset.getRadians();
+        double angle = m_steerIntegratedEncoder.getPosition() - this.angleOffset.getRadians();
         return Rotation2d.fromRadians(angle); 
       }
     
@@ -181,7 +181,7 @@ public class SwerveModule {
       }
     
       public SwerveModuleState getState(){
-        return new SwerveModuleState(m_drivingSparkMax.getEncoder().getVelocity(), getSteerAngle());
+        return new SwerveModuleState(m_driveMotor.getEncoder().getVelocity(), getSteerAngle());
       }
     
       public void setDesiredState(SwerveModuleState state,boolean isOpenLoop) {
@@ -189,16 +189,16 @@ public class SwerveModule {
         state = SwerveModuleState.optimize(state, getSteerAngle());
         // System.out.println("Post Optimize: " + state.speedMetersPerSecond);
         // System.out.println("Setting: " + (state.speedMetersPerSecond / Constants.DriveConstants.kMaxSpeedMetersPerSecond));
-        m_drivingSparkMax.set(state.speedMetersPerSecond / Constants.Swerve.maxSpeed);
-        m_turningSparkMax.set(
+        m_driveMotor.set(state.speedMetersPerSecond / Constants.Swerve.maxSpeed);
+        m_steerMotor.set(
           m_CancoderTurningController.calculate(
-            m_turningEncoder.getPosition(), 
+            m_steerIntegratedEncoder.getPosition(), 
             state.angle.getRadians() + this.angleOffset.getRadians())
         );
       }
     
       public Rotation2d getAbsoluteAngle() {
-        return Rotation2d.fromRadians(angleEncoder.getAbsolutePosition()); 
+        return Rotation2d.fromRadians(CANcoder.getAbsolutePosition()); 
       }
     
     //   @Override
@@ -279,21 +279,21 @@ public class SwerveModule {
    
     public void resetToAbsolute(){
         double absolutePosition = Conversions.degreesToFalcon(getAbsoluteAngle().getDegrees() - angleOffset.getDegrees(), Constants.Swerve.angleGearRatio);
-        m_turningSparkMax.getEncoder().setPosition(absolutePosition);
+        m_steerMotor.getEncoder().setPosition(absolutePosition);
     }
 
     private void configAngleEncoder(){        
-        angleEncoder.configFactoryDefault();
-        angleEncoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);
+        CANcoder.configFactoryDefault();
+        CANcoder.configAllSettings(Robot.ctreConfigs.swerveCanCoderConfig);
     }
 
     private void configAngleMotor(){
-        m_turningSparkMax.setInverted(Constants.Swerve.angleMotorInvert);
-        resetToAbsolute();
+        m_steerMotor.setInverted(Constants.Swerve.angleMotorInvert);
+
     }
 
     private void configDriveMotor(){        
-        m_drivingSparkMax.setInverted(Constants.Swerve.driveMotorInvert);
+        m_driveMotor.setInverted(Constants.Swerve.driveMotorInvert);
     }
 
 }

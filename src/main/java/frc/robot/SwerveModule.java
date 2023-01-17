@@ -144,6 +144,8 @@ public class SwerveModule {
 
         // lastAngle = getState().angle;
 
+        m_modulePosition = new SwerveModulePosition();
+
          // Save the SPARK MAX configurations. If a SPARK MAX browns out during
         // operation, it will maintain the above configurations.
         m_drivingSparkMax.burnFlash();
@@ -195,8 +197,8 @@ public class SwerveModule {
         );
       }
     
-      public double getAbsoluteAngle() {
-        return angleEncoder.getAbsolutePosition(); 
+      public Rotation2d getAbsoluteAngle() {
+        return Rotation2d.fromRadians(angleEncoder.getAbsolutePosition()); 
       }
     
     //   @Override
@@ -244,9 +246,7 @@ public class SwerveModule {
 // //         new Rotation2d(m_turningEncoder.getPosition() - this.angleOffset.getRadians()));
 // //   }
 
-  public Rotation2d getCanCoder(){
-    return Rotation2d.fromRadians(angleEncoder.getAbsolutePosition());
-}
+  
 //   /**
 //    * Sets the desired state for the module.
 //    *
@@ -278,7 +278,7 @@ public class SwerveModule {
 
    
     public void resetToAbsolute(){
-        double absolutePosition = Conversions.degreesToFalcon(getCanCoder().getDegrees() - angleOffset.getDegrees(), Constants.Swerve.angleGearRatio);
+        double absolutePosition = Conversions.degreesToFalcon(getAbsoluteAngle().getDegrees() - angleOffset.getDegrees(), Constants.Swerve.angleGearRatio);
         m_turningSparkMax.getEncoder().setPosition(absolutePosition);
     }
 

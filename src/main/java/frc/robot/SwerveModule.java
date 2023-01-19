@@ -143,7 +143,7 @@ public class SwerveModule {
     );
 
         // lastAngle = getState().angle;
-        m_CancoderTurningController.enableContinuousInput(0, 2*Math.PI);
+        m_CancoderTurningController.enableContinuousInput(0, 4*Math.PI);
         m_modulePosition = new SwerveModulePosition();
 
          // Save the SPARK MAX configurations. If a SPARK MAX browns out during
@@ -153,7 +153,8 @@ public class SwerveModule {
     }
 
     public void reset(){
-        m_steerIntegratedEncoder.setPosition(CANcoder.getAbsolutePosition());
+        double abspos = (getAbsoluteAngle().getRadians() - angleOffset.getRadians());
+        m_steerIntegratedEncoder.setPosition(abspos);
       }
     
       public void stop(){

@@ -143,7 +143,7 @@ public class SwerveModule {
     );
 
         // lastAngle = getState().angle;
-        m_CancoderTurningController.enableContinuousInput(0, 360);
+        m_CancoderTurningController.enableContinuousInput(0, 2*Math.PI);
         m_modulePosition = new SwerveModulePosition();
 
          // Save the SPARK MAX configurations. If a SPARK MAX browns out during
